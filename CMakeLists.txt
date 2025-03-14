@@ -18,36 +18,35 @@ if(NOT MINIO_BIN)
   if (APPLE)
     message("APPLE!")
     set(SYS_NAME "darwin")
-    if(CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64")
-      set(SYS_PROC "arm64")
-    else()
-      set(SYS_PROC "amd64")
-    endif()
   else()
     message("NOT APPLE!")
+    set(SYS_NAME "linux")
   endif()
-  set(DOWNLOAD_URL "https://dl.min.io/server/minio/release/darwin-arm64/minio")
-  set(LOCAL_OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/minio")
-  file(
-    DOWNLOAD 
-    ${DOWNLOAD_URL}
-    ${LOCAL_OUTPUT}
-    SHOW_PROGRESS
-    # EXPECTED_HASH SHA256=YOUR_EXPECTED_HASH_HERE
-    # TIMEOUT 30
-    TLS_VERIFY ON
-  )
-  file(CHMOD "${CMAKE_CURRENT_BINARY_DIR}/minio" PERMISSIONS
-        OWNER_READ
-        OWNER_WRITE
-        OWNER_EXECUTE
-        GROUP_READ
-        GROUP_EXECUTE
-        WORLD_READ
-        WORLD_EXECUTE
-  )
+  if(CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64" OR
+     CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64")
+    set(SYS_PROC "arm64")
+  else()
+    set(SYS_PROC "amd64")
+  endif()
+
+  set(URL "https://dl.min.io/server/minio/release/${SYS_NAME}-${SYS_PROC}/minio")
+  set(FILE "${CMAKE_CURRENT_BINARY_DIR}/minio")
+  message("Downloading ${URL} to ${FILE}")
+  file(DOWNLOAD "${URL}" "${FILE}" SHOW_PROGRESS)
+
+  file(CHMOD "${FILE}" PERMISSIONS
+        OWNER_READ OWNER_WRITE OWNER_EXECUTE
+        GROUP_READ GROUP_EXECUTE
+        WORLD_READ WORLD_EXECUTE)
+
 endif()
+
 find_program(MINIO_BIN minio HINTS "${CMAKE_CURRENT_BINARY_DIR}" REQUIRED)
+
+file(SIZE minio FILE_SIZE)
+if (FILE_SIZE EQUAL 0)
+  message(FATAL_ERROR "Found empty executable (minio)")
+endif()
 
 
 # https://dl.min.io/client/mc/release/linux-amd64/mc
